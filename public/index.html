@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare KV CRUD App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            padding: 8px;
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #f6821f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e67e22;
+        }
+        #itemsList {
+            margin-top: 20px;
+        }
+        .item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+        }
+        .item-content {
+            flex: 1;
+        }
+        .item-key {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .item-value {
+            color: #34495e;
+            word-break: break-all;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+            margin-left: 10px;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cloudflare KV CRUD App</h1>
+    
+    <div class="form-group">
+        <input type="text" id="keyInput" placeholder="Enter key">
+        <input type="text" id="valueInput" placeholder="Enter value">
+        <button onclick="createItem()">Create/Update Item</button>
+    </div>
+
+    <div id="itemsList"></div>
+
+    <script>
+        const API_URL = '/api/items';
+
+        async function loadItems() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                displayItems(data.items);
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+
+        function displayItems(items) {
+            const itemsList = document.getElementById('itemsList');
+            itemsList.innerHTML = '';
+            
+            if (!items || items.length === 0) {
+                itemsList.innerHTML = '<div class="item">No items found</div>';
+                return;
+            }
+
+            items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item';
+                itemDiv.innerHTML = `
+                    <div class="item-content">
+                        <div class="item-key">${item.key}</div>
+                        <div class="item-value">${item.value !== null ? item.value : 'null'}</div>
+                    </div>
+                    <button onclick="deleteItem('${item.key}')" class="delete-btn">Delete</button>
+                `;
+                itemsList.appendChild(itemDiv);
+            });
+        }
+
+        async function createItem() {
+            const key = document.getElementById('keyInput').value.trim();
+            const value = document.getElementById('valueInput').value.trim();
+
+            if (!key || !value) {
+                alert('Both key and value are required!');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ key, value }),
+                });
+
+                if (response.ok) {
+                    document.getElementById('keyInput').value = '';
+                    document.getElementById('valueInput').value = '';
+                    loadItems();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to create item');
+                }
+            } catch (error) {
+                console.error('Error creating item:', error);
+                alert('Failed to create item');
+            }
+        }
+
+        async function deleteItem(key) {
+            try {
+                const response = await fetch(`${API_URL}/${key}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    loadItems();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to delete item');
+                }
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                alert('Failed to delete item');
+            }
+        }
+
+        // Load items when page loads
+        loadItems();
+
+        // Add event listeners for enter key
+        document.getElementById('keyInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('valueInput').focus();
+            }
+        });
+
+        document.getElementById('valueInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                createItem();
+            }
+        });
+    </script>
+</body>
+</html> 
