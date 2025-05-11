@@ -1,1 +1,1 @@
-# cloudflare-lv-database-sample
+# cloudflare-kv-database-sample
